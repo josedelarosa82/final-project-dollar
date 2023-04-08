@@ -13,9 +13,9 @@ def model_fn(model_dir):
     model = joblib.load(os.path.join(model_dir, 'model.joblib'))
     return model
 
-def predict_fn(input_object, model):
-    y_pred = model.predict_proba(input_object)[0][1]
-    return y_pred
+#def predict_fn(input_object, model):
+#    y_pred = model.predict_proba(input_object)[0][1]
+#    return y_pred
 
 def input_fn(request_body, request_content_type):
     print(request_body)
