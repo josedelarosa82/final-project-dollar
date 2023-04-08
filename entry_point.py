@@ -1,7 +1,7 @@
 import argparse
 import os
 import datetime as dt
-
+import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
@@ -37,43 +37,45 @@ if __name__ =='__main__':
     parser.add_argument('--test', type=str, default=os.environ.get('SM_CHANNEL_TEST'))
     
     args, _ = parser.parse_known_args()
-    train = pd.read_csv('{}/train.csv'.format(args.train), header=None)
-    test = pd.read_csv('{}/test.csv'.format(args.test), header=None)
+    train = pd.read_csv('{}/train.csv'.format(args.train))
+    test = pd.read_csv('{}/test.csv'.format(args.test))
     
     
     
-    X_train = train.iloc[:, 1:]
-    y_train = train.iloc[:, 0]
+    train['fecha'] = pd.to_datetime(train['fecha'])
+    train['fecha'] = train['fecha'].map(dt.datetime.toordinal)
+
+    test['fecha'] = pd.to_datetime(test['fecha'])
+    test['fecha'] = test['fecha'].map(dt.datetime.toordinal)
     
-    X_test = test.iloc[:, 1:]
-    y_test = test.iloc[:, 0]
     
-    
-    
-    X_train = pd.to_datetime(X_train)
-    X_train = X_train.map(dt.datetime.toordinal)
-    
-    X_test = pd.to_datetime(X_test)
-    X_test = X_test.map(dt.datetime.toordinal)
+    X_train = np.array(train['fecha']).reshape(-1, 1)
+    y_train = np.array(train['value']).reshape(-1, 1)
+
+    X_test = np.array(test['fecha']).reshape(-1, 1)
+    y_test = np.array(test['value']).reshape(-1, 1)
     
     model = LinearRegression()
-    
+
     model.fit(X_train, y_train)
+
+    print(model.score(X_test, y_test))
     
     
-    y_test_predict = model.predict(X_test)
-    
-    puntuation = r2_score(y_test, y_test_predict)
-    mae = mean_absolute_error(y_test, y_test_predict)
-    mse = mean_squared_error(y_test, y_test_predict)
-    
+    y_pred = model.predict(X_test)
+
     print(f"Coeficientes del modelo: {model.coef_}")
     print(f"Intresección del modelo: {model.intercept_}")
     print(f"Número de coeficientes del modelo: {len(model.coef_)}")
     
+    puntuation = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+
     print(f"Score r2: {puntuation}")
     print(f"Score mae: {mae}")
     print(f"Score mse: {mse}")
+
     
     joblib.dump(model, os.path.join(args.model_dir, 'model.joblib') )
     
